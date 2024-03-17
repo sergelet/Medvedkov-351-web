@@ -1,0 +1,13 @@
+body {
+    font-size: 1.25rem;
+}
+
+.avatar {
+    max-width: 100%;
+}
+.avatarim {
+    size: 20px;
+}
+.reply-block{
+    margin-left: 40px;
+}
