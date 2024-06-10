@@ -5,7 +5,6 @@ app = Flask(__name__)
 
 application = app
  
-# app.secret_key = 'f038a541489b89f81762d12edfdd03835ceea10cfb3cdbdabfbfa0f48b0d4802'
 app.config.from_pyfile('config.py')
 
 login_manager = LoginManager()
@@ -34,10 +33,6 @@ class User(UserMixin):
 
 @login_manager.user_loader
 def load_user(user_id):
-    # user = list(filter(lambda x: x.id == int(user_id), users))
-    # if len(user) != 0:
-    #     user_obj = User(user[0]['id'], user[0]['email'])
-    #     return user[0]
     for user in users:
         if user['id'] == int(user_id):
             return User(user['id'], user['login'])
@@ -70,7 +65,7 @@ def login():
                 param_url = request.args.get('next')
                 flash('Вы успешно вошли', 'success')
                 return redirect(param_url or url_for('index'))
-    flash('Вы не успешно вошли', 'danger')
+        flash('Вы не успешно вошли', 'danger')
     return render_template('login.html' )
 
 @app.route('/logout', methods = ['GET'])

@@ -9,9 +9,8 @@
       class="form-control {{ l_class }}"
       id="login"
       aria-describedby="loginHelp"
-      required
-      value={% if user.login %}{{ user.login }}{% else %}""{% endif %}
-    />
+      
+      value={% if user.login %}{{ user.login }}{% else %}""{% endif %} />
     {% if l_class %}
     <div id="loginHelp" class="{{ l_message_class }}">
       {{ l_message }}
@@ -27,7 +26,7 @@
       aria-describedby="pHelp"
       id="exampleInputPassword1"
       value={% if user.password %}{{ user.password }}{% else %}""{% endif %}
-      required
+      
     />
     {% if p_class %}
     <div id="pHelp" class="{{ p_message_class }}">
@@ -45,7 +44,6 @@
       id="last_name"
       aria-describedby="lnHelp"
       value={% if user.last_name %}{{ user.last_name }}{% else %}""{% endif %}
-      required
     />
     {% if ln_class %}
     <div id="lnHelp" class="{{ ln_message_class }}">
@@ -62,7 +60,7 @@
       id="first_name"
       aria-describedby="fnHelp"
       value={% if user.first_name %}{{ user.first_name }}{% else %}""{% endif %}
-      required
+      
     />
     {% if fn_class %}
     <div id="fnHelp" class="{{ fn_message_class }}">

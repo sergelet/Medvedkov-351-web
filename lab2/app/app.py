@@ -1,10 +1,11 @@
-from flask import Flask, render_template, make_response, request
+from flask import Flask, render_template, make_response, request, flash
 import re
 
 app = Flask(__name__)
 
 application = app
 
+app.secret_key = 'f038a541489b89f81762d12edfdd03835ceea10cfb3cdbdabfbfa0f48b0d4802'
 
 @app.route('/')
 def index():
@@ -33,7 +34,7 @@ def cookies():
 
 @app.route('/forms', methods=['GET', 'POST'])
 def forms():
-    # if request.method == "POST"
+    #if request.method == "POST"
     return render_template('forms.html', title="Параметры формы")
 
 
@@ -67,18 +68,20 @@ def phoneNumber():
 
         error = ""
         if not all([symbol in [" ", "(", ")", "-", ".", "+", *list(map(str, list(range(10))))] for symbol in phone]):
-            error = "Недопустимый ввод. Встречаются недопустимые символы."
+            error = "Ошибка! Вы ввели недопустимые символы."
+            flash(error, "danger")
         elif phoneNumbers[0] in ["7", "8"] and len(phoneNumbers) != 11:
-            error = "Недопустимый ввод. Неверное количество цифр."
+            error = "Ошибка! Вы ввели неверное количество цифр."
+            flash(error, "danger")
         elif phoneNumbers[0] not in ["7", "8"] and len(phoneNumbers) != 10:
-            error = "Недопустимый ввод. Неверное количество цифр."
+            error = "Ошибка! Вы ввели недопустимое количество цифр."
+            flash(error, "danger")
 
         if error:
-            return render_template("phoneNumber.html", title="Проверка номера телефона", phone=error)
+            return render_template("phoneNumber.html", title="Проверка номера телефона")
 
         if len(phoneNumbers) == 10:
             phoneNumbers.insert(0, "8")
 
         return render_template("phoneNumber.html", title="Проверка номера телефона", phone="8-{1}{2}{3}-{4}{5}{6}-{7}{8}-{9}{10}".format(*phoneNumbers))
-    else:
-        return render_template("phoneNumber.html", title="Проверка номера телефона")
+    return render_template("phoneNumber.html", title="Проверка номера телефона")
