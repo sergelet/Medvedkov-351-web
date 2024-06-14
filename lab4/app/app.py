@@ -255,7 +255,7 @@ def change():
                 if not user:
                     flash('Старый пароль не соответствует текущему', 'danger')
                 elif len(error) != 0:
-                    flash(error, 'danger')
+                    flash('Новый пароль' + error, 'danger')
                 elif n_password != n_password_2:
                     flash(error, 'danger')
                 else:
