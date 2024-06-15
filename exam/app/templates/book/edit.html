@@ -2,6 +2,6 @@
 {% from 'book/form.html' import book_form %}
 {% block content %}
 <div class="container">
-    {{ book_form(url_for('book.create'), genres=genres) }}
+    {{ book_form(url_for('book.edit', book_id=book.id), book=book, genres=genres) }}
 </div>
 {% endblock %}

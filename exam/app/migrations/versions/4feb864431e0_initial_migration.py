@@ -1,16 +1,16 @@
 """Initial migration
 
-Revision ID: 22f7f92f5d7a
+Revision ID: 4feb864431e0
 Revises: 
-Create Date: 2024-06-14 23:53:57.670394
+Create Date: 2024-06-15 16:30:16.198496
 
 """
 from alembic import op
 import sqlalchemy as sa
-
+from sqlalchemy.dialects import mysql
 
 # revision identifiers, used by Alembic.
-revision = '22f7f92f5d7a'
+revision = '4feb864431e0'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -24,31 +24,31 @@ def upgrade():
     sa.PrimaryKeyConstraint('id', name=op.f('pk_genres')),
     sa.UniqueConstraint('name', name=op.f('uq_genres_name'))
     )
+    op.create_table('oblojka',
+    sa.Column('id', sa.String(length=256), nullable=False),
+    sa.Column('filename', sa.String(length=256), nullable=False),
+    sa.Column('mime_type', sa.String(length=256), nullable=False),
+    sa.Column('md5_hash', sa.String(length=256), nullable=False),
+    sa.PrimaryKeyConstraint('id', name=op.f('pk_oblojka'))
+    )
     op.create_table('roles',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=256), nullable=False),
     sa.Column('description', sa.Text(), nullable=False),
     sa.PrimaryKeyConstraint('id', name=op.f('pk_roles'))
     )
-    op.create_table('skins',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('filename', sa.String(length=256), nullable=False),
-    sa.Column('mime_type', sa.String(length=256), nullable=False),
-    sa.Column('md5_hash', sa.String(length=256), nullable=False),
-    sa.PrimaryKeyConstraint('id', name=op.f('pk_skins'))
-    )
     op.create_table('books',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=100), nullable=False),
     sa.Column('short_desc', sa.Text(), nullable=False),
-    sa.Column('created_year', sa.DateTime(), nullable=False),
+    sa.Column('created_year', mysql.YEAR(), nullable=False),
     sa.Column('publish', sa.String(length=100), nullable=False),
     sa.Column('author', sa.String(length=100), nullable=False),
     sa.Column('pages_count', sa.Integer(), nullable=False),
     sa.Column('rating_sum', sa.Integer(), nullable=False),
     sa.Column('rating_num', sa.Integer(), nullable=False),
-    sa.Column('skin_id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['skin_id'], ['skins.id'], name=op.f('fk_books_skin_id_skins'), ondelete='RESTRICT'),
+    sa.Column('skin_id', sa.String(length=256), nullable=False),
+    sa.ForeignKeyConstraint(['skin_id'], ['oblojka.id'], name=op.f('fk_books_skin_id_oblojka'), ondelete='RESTRICT'),
     sa.PrimaryKeyConstraint('id', name=op.f('pk_books'))
     )
     op.create_table('users',
@@ -90,7 +90,7 @@ def downgrade():
     op.drop_table('genresbooks')
     op.drop_table('users')
     op.drop_table('books')
-    op.drop_table('skins')
     op.drop_table('roles')
+    op.drop_table('oblojka')
     op.drop_table('genres')
     # ### end Alembic commands ###

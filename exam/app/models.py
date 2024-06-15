@@ -5,11 +5,10 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy import String, ForeignKey, DateTime, Text, Integer, MetaData
+from sqlalchemy.dialects.mysql.types import YEAR
 
 ADMIN_ROLE_ID = 1
 MODER_ROLE_ID = 2
-
-# Будет исправленно
 
 class Base(DeclarativeBase):
     metadata = MetaData(naming_convention={
@@ -76,13 +75,13 @@ class Book(Base):
     id = mapped_column(Integer, primary_key=True) 
     name: Mapped[str] = mapped_column(String(100), nullable=False) 
     short_desc: Mapped[str] = mapped_column(Text, nullable=False) 
-    created_year: Mapped[datetime] = mapped_column(DateTime, nullable=False) 
+    created_year: Mapped[int] = mapped_column(YEAR, nullable=False)
     publish: Mapped[str] = mapped_column(String(100), nullable=False) 
     author: Mapped[str] = mapped_column(String(100), nullable=False) 
     pages_count: Mapped[int] = mapped_column(nullable=False) 
     rating_sum: Mapped[int] = mapped_column(default=0) 
     rating_num: Mapped[int] = mapped_column(default=0) 
-    skin_id: Mapped[int] = mapped_column(Integer, ForeignKey("skins.id", ondelete="RESTRICT")) 
+    skin_id: Mapped[int] = mapped_column(String(256), ForeignKey("oblojka.id", ondelete="RESTRICT")) 
  
     @property 
     def rating(self): 
@@ -103,10 +102,10 @@ class GenreBook(Base):
     genre_id: Mapped[int] = mapped_column(Integer, ForeignKey('genres.id', ondelete='CASCADE'), primary_key=True, nullable=False)
 
 
-class Skin(Base):
-    __tablename__ = 'skins'
+class Oblojka(Base):
+    __tablename__ = 'oblojka'
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(String(256), primary_key=True)
     filename: Mapped[str] = mapped_column(String(256), nullable=False)
     mime_type: Mapped[str] = mapped_column(String(256), nullable=False)
     md5_hash: Mapped[str] = mapped_column(String(256), nullable=False)
@@ -121,9 +120,6 @@ class Review(Base):
     rating: Mapped[int] = mapped_column(Integer, nullable=False)
     text: Mapped[str] = mapped_column(Text, nullable=False)
     date_added: Mapped[datetime] = mapped_column(DateTime, default=db.func.current_timestamp(), nullable=False)
-
-
-    # требует исправление
 
 
 

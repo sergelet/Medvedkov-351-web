@@ -3,10 +3,12 @@ from flask_migrate import Migrate
 from sqlalchemy.exc import SQLAlchemyError
 from auth import bp as auth_bp, init_login_manager
 from book import bp as book_bp
-from models import db, Genre,Book
+from models import db, Genre, Book, Oblojka
+from tools import BookFilter
 
 
 app = Flask(__name__)
+
 application = app
 app.config.from_pyfile('config.py')
 
@@ -17,17 +19,20 @@ init_login_manager(app)
 
 
 app.register_blueprint(auth_bp)
-
 app.register_blueprint(book_bp)
 
 
 @app.route('/')
 def index():
-    genres = db.session.execute(db.select(Genre)).scalars()
-    book = db.session.execute(db.select(Book)).scalars()
+    genres = db.session.execute(db.select(Genre)).scalars().all()
+    books = db.session.execute(db.select(Book)).scalars().all()
     return render_template(
         'index.html',
         genres=genres,
-        books=book
+        books=books
     )
-# В процессе
+
+@app.route('/images/<skin_id>')
+def skin(skin_id):
+    img = db.get_or_404(Oblojka, skin_id)
+    return send_from_directory(app.config['UPLOAD_FOLDER'], img.filename)

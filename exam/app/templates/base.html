@@ -15,25 +15,20 @@
 
 <body class="d-flex flex-column h-100">
     <header>
-        <nav class="navbar navbar-light">
+        <nav class="navbar navbar-dark bg-light">
             <div class="container-fluid">
                 <div class="logo navbar-brand">
                     <a href="{{ url_for('index') }}">
-                        <img class="img-fluid" src="{{ url_for('static', filename='images/logo.png') }}" alt="logo_pic">
+                        <img class="img-fluid" src="{{ url_for('static', filename='images/logo.png') }}" alt="logo-pic">
                     </a>
                 </div>
                 {% if current_user.is_authenticated %}
-                    <div class="dropdown d-flex">
-                        <div class="ms-auto" title="{{ current_user.full_name }}" id="dropdownMenuButton" data-bs-toggle="dropdown"
-                            aria-haspopup="true" aria-expanded="false">
-                            <span style="color: #000000; cursor: pointer; white-space: nowrap;">{{ current_user.full_name }}</span>
-                        </div>
-                        <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                            <a class="dropdown-item" href="{{ url_for('auth.logout') }}">Выйти</a>
-                        </div>
+                    <div class="header d-flex flex-direction-row align-items-center justify-content-center">
+                        <span style="color: #000000; white-space: nowrap; margin-right: 10px; margin-top: 1px;">{{ current_user.full_name }}</span>
+                        <a class="btn btn-outline-light" href="{{ url_for('auth.logout') }}">Выйти</a>
                     </div>
                 {% else %}
-                    <a class="btn btn-outline-light" href="{{ url_for('auth.login') }}">Войти</a>
+                    <a class="btn btn-outline-dark" href="{{ url_for('auth.login') }}">Войти</a>
                 {% endif %}
             </div>
         </nav>
@@ -65,4 +60,5 @@
 
     <script defer src="{{ url_for('static', filename='main.js') }}"></script>
 </body>
+
 </html>
