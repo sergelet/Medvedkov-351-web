@@ -1,35 +1,44 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, send_from_directory
 from models import db, Genre, GenreBook,Review, Book, Oblojka
 from flask_login import login_required, current_user
-from tools import SkinSaver, BookFilter
+from tools import OblojkaSaver, BookFilter
 from datetime import datetime
 from sqlalchemy.exc import SQLAlchemyError
+import bleach
 
 bp = Blueprint('book', __name__, url_prefix='/book')
 
+
 @bp.route('/new')
 def new():
-
     genres = db.session.execute(db.select(Genre)).scalars()
-    return render_template('book/new.html',genres=genres)
+    return render_template(
+        'book/new.html',
+        genres=genres
+        )
+
+@bp.route('/<int:book_id>/reviews')
+def reviews(book_id):
+    book = db.session.query(Book).get_or_404(book_id)
+    genres = db.session.query(Genre).join(GenreBook).filter(GenreBook.book_id == book.id).all()
+    review = db.session.query(Review).filter_by(book_id=book_id, user_id=current_user.id).first()
+    reviews = db.session.query(Review).filter_by(book_id=book_id).order_by(Review.date_added.desc()).all()
+    return render_template('book/reviews.html', book=book, genres=genres, review = review, reviews=reviews)
 
 @bp.route('/create', methods=['POST'])
 @login_required
 def create():  
-
     if request.method == "POST":
-
         name = request.form['name']
         author = request.form['author']
         created_year = request.form['created']
         publish = request.form['publish']
         pages_count = int(request.form['pagescount'])
-        short_desc = request.form['short_desc']
+        short_desc = bleach.clean(request.form['short_desc'])
         genres = request.form.getlist('genres')
         background_img = request.files['background_img']
-
         try:     
-            skin_saver = SkinSaver(background_img)
+            skin_saver = OblojkaSaver(background_img)
             skin = skin_saver.save()
             
             book = Book(
@@ -45,7 +54,7 @@ def create():
             db.session.flush()
             
             if not genres:
-                flash(genres, 'warning')
+                flash('Необходим выбор жанра', 'warning')
                 return render_template('new.html', genres=db.session.query(Genre).all())
             
             for genre_id in genres:
@@ -63,9 +72,8 @@ def create():
         
         except Exception as err:
             db.session.rollback()
-            flash(f'Ошибка добавления книги: {err}', 'danger')
+            flash(f'Ошибка добавления книги в базу: {err}', 'danger')
             return render_template('book/new.html', genres=db.session.query(Genre).all())
-        
     return redirect(url_for('index'))
 
 @bp.route('/show/<int:book_id>', methods=['GET', 'POST'])
@@ -73,7 +81,10 @@ def create():
 def show(book_id):   
     book = db.session.query(Book).get_or_404(book_id)
     genres = db.session.query(Genre).join(GenreBook).filter(GenreBook.book_id == book.id).all()
-    return render_template('book/show.html', book=book, genres=genres)
+    review = db.session.query(Review).filter_by(book_id=book_id, user_id=current_user.id).first()
+    reviews = db.session.query(Review).filter_by(book_id=book_id).order_by(Review.date_added.desc()).all()
+
+    return render_template('book/show.html', book=book, genres=genres, review = review, reviews=reviews)
 
 
 @bp.route('/images/<skin_id>')
@@ -81,10 +92,28 @@ def skin(skin_id):
     img = db.get_or_404(Oblojka, skin_id)
     return send_from_directory(bp.config['UPLOAD_FOLDER'], img.filename)
 
-@bp.route('/<int:book_id>/reviews')
+@bp.route('/<int:book_id>', methods=['POST'])
 @login_required
-def reviews(book_id):
-    return 0 
+def add_review(book_id):
+    text = bleach.clean(request.form["reviewBody"])
+    rating = int(request.form["rating"])
+    try:
+        review = Review(
+            rating=rating,
+            text=text, 
+            book_id=book_id, 
+            user_id=current_user.id
+            )
+
+        book = db.get_or_404(Book, book_id)
+        book.rating_sum += rating
+        book.rating_num += 1
+        db.session.add(review)
+        db.session.commit()
+    except Exception as err:
+        flash(f'Возникла ошибка при записи данных в БД. Проверьте введенные данных. ({err})', 'danger')
+        db.session.rollback()
+    return redirect(url_for('book.show', book_id=book.id))
 
 
 @bp.route('/edit/<int:book_id>', methods=["GET", "POST"])
@@ -94,14 +123,13 @@ def edit(book_id):
     genres_main = db.session.query(Genre).all()
     
     if request.method == "POST":
-
         try:
             book.name = request.form['name']
             book.author = request.form['author']
             book.created_year = request.form['created']
             book.publish = request.form['publish']
             book.pages_count = int(request.form['pagescount'])
-            book.short_desc = request.form['short_desc']
+            book.short_desc = bleach.clean(request.form['short_desc'])
             genres = request.form.getlist('genres')
             db.session.query(GenreBook).filter_by(book_id=book.id).delete()
 
@@ -119,13 +147,12 @@ def edit(book_id):
                 db.session.add(genrebook)
             
             db.session.commit()
-            flash('Книга успешно добавлена', 'success')
+            flash('Книга добавлена', 'success')
             return redirect(url_for('index'))
         
         except Exception as err:
             db.session.rollback()
-            flash(f'Ошибка редактирования книги: {err}', 'danger')
-
+            flash(f'Ошибка редактирования: {err}', 'danger')
             return render_template('book/edit.html', book=book, genres=genres_main)
     
     return render_template('book/edit.html', book=book, genres=genres_main)
@@ -133,19 +160,17 @@ def edit(book_id):
 @bp.route('/<int:book_id>/delete', methods=["GET", "POST"])
 @login_required
 def delete(book_id):
-
     book = db.session.execute(db.select(Book).filter_by(id=book_id)).scalars().first()
     skin = db.session.execute(db.select(Oblojka).filter_by(id=book.skin_id)).scalars().first()
     skin_filename = skin.filename
-
     try:
+        db.session.query(Review).filter_by(book_id=book.id).delete()
         db.session.delete(book)
         db.session.delete(skin)
         db.session.commit()
-        SkinSaver.drop_skin(skin_filename)
-
+        OblojkaSaver.drop_skin(skin_filename)
     except SQLAlchemyError as err:
-        flash(f'Ошибка удаление книги: {err}', 'danger')
+        flash(f'Ошибка удаления: {err}', 'danger')
         return redirect(url_for('index')) 
     
     return redirect(url_for('index'))

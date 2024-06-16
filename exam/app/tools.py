@@ -5,7 +5,7 @@ from werkzeug.utils import secure_filename
 from flask import current_app
 from models import db, Oblojka, Book, GenreBook
 
-class SkinSaver:
+class OblojkaSaver:
     def __init__(self, file):
         self.file = file
 
@@ -40,16 +40,6 @@ class BookFilter:
     def __init__(self):
         self.bookquery = db.select(Book)
         self.genrequery = db.select(GenreBook)
-
-    def perform(self):
-        self.__filter_by_name()
-        self.__filter_by_category_ids()
-        return self.query.order_by(Book.created_at.desc())
-
-    def __filter_by_name(self):
-        if self.name:
-            self.query = self.query.filter(Book.name.ilike('%' + self.name + '%'))
-
-    def __filter_by_category_ids(self):
-        if self.genre_ids:
-            self.query = self.query.filter(GenreBook.genre_ids.in_(self.genre_ids))
+    
+    def find(self):
+        return self.bookquery.order_by(Book.created_year.desc())

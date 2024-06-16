@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+
+{% block content %}
+<div class="container mt-5 mb-3">
+    <h2 class="mb-3 text-center text-uppercase font-weight-bold">Отзывы</h2>
+        {% if reviews %}
+            {% for rev in reviews %}
+                <div class="card mt-3">
+                    <div class="card-body">
+                    <div class="d-flex flex-row justify-content-between">
+                        <h6 class="card-subtitle text-muted">{{ rev.created_at }}</h6>
+                    </div>
+                    <h6 class="card-subtitle mb-2 text-muted">{{ rev.rating_name }}</h6>
+                    <p class="card-text">{{ rev.text }}</p>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+        <h5 class="mb-3 text-center">Прилетел дракон и съел все отзывы</h2>
+    {% endif %}
+</div>
+
+
+{% if current_user.is_authenticated and not review %}
+    <div class="container mt-5 mb-5">
+        <h2 class="mb-3 text-center text-uppercase font-weight-bold">Оставить отзыв</h2>
+        <form action="{{ url_for('book.add_review', book_id=book.id) }}" method="post">
+            <div class="mb-3">
+                <label for="reviewBody" class="form-label">Отзыв</label>
+                <textarea class="form-control" id="reviewBody" rows="3" name="reviewBody"></textarea>
+            </div>
+            <div class="mb-3">
+                <label for="rating" class="form-label">Рейтинг</label>
+                <select class="form-select" aria-label="rating" name="rating" id="rating">
+                    <option selected value="5">Отлично</option>
+                    <option value="4">Хорошо</option>
+                    <option value="3">Удовлетворительно</option>
+                    <option value="2">Неудовлетворительно</option>
+                    <option value="1">Плохо</option>
+                    <option value="0">Ужасно</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Submit</button>
+        </form>
+    </div>
+{% else %}
+    {% if review %}
+    <div class="container mt-5 mb-5">
+      <h2 class="mb-3 text-center text-uppercase font-weight-bold">Ваш отзыв</h2>
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex flex-row justify-content-between">
+            <h6 class="card-subtitle text-muted inline-block">{{ review.created_at }}</h6>
+          </div>
+          <h6 class="card-subtitle mb-2 text-muted">{{ review.rating_name }}</h6>
+          <p class="card-text">{{ review.text }}</p>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+{% endif %}
+
+<div class="text-center my-3">
+    <a class="btn btn-lg btn-dark" href="{{ url_for('book.show', book_id=book.id) }}">К книге</a>
+</div>
+
+{% endblock %}

@@ -10,23 +10,23 @@
             <div class="col-md-6 d-flex flex-column">
                 <div class="mb-3">
                     <label for="name">Название</label>
-                    <input class="form-control" type="text" name="name" id="name" value="{{ book.name or '' }}">
+                    <input class="form-control" type="text" name="name" id="name" value="{{ book.name or '' }}" required>
                 </div>
                 <div class="mb-3">
                     <label for="author">Автор</label>
-                    <input class="form-control" type="text" name="author" id="author" value="{{ book.author or '' }}">
+                    <input class="form-control" type="text" name="author" id="author" value="{{ book.author or '' }}" required>
                 </div>
                 <div class="mb-3">
                     <label for="created">Год</label>
-                    <input class="form-control" type="text" name="created" id="created" value="{{ book.created_year or '' }}">
+                    <input class="form-control" type="text" name="created" id="created" value="{{ book.created_year or '' }}" required>
                 </div>
                 <div class="mb-3">
                     <label for="publish">Издательство</label>
-                    <input class="form-control" type="text" name="publish" id="publish" value="{{ book.publish or '' }}">
+                    <input class="form-control" type="text" name="publish" id="publish" value="{{ book.publish or '' }}" required>
                 </div>
                 <div class="mb-3">
                     <label for="pagescount">Объем в страницах</label>
-                    <input class="form-control" type="text" name="pagescount" id="pagescount" value="{{ book.pages_count or '' }}">
+                    <input class="form-control" type="text" name="pagescount" id="pagescount" value="{{ book.pages_count or '' }}" required>
                 </div>
                 <div class="mb-3 d-flex flex-column flex-grow-1">
                     <label for="short_description">Краткое описание</label>
@@ -45,7 +45,7 @@
             <div class="col-md-6 d-flex flex-column">
                 <div class="mb-3">
                     <label for="background_img">Фоновое изображение</label>
-                    <input class="form-control" type="file" name="background_img" id="background_img">
+                    <input class="form-control" type="file" name="background_img" id="background_img" required>
                 </div>
                 <div class="mb-3 background-preview p-3 rounded d-flex align-items-center justify-content-center">
                     <img src="#" class="img-fluid d-none" alt="">
@@ -60,4 +60,5 @@
         </div>
     </form>
 </div>
+
 {% endmacro %}
