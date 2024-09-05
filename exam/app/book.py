@@ -1,183 +1,163 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, send_from_directory
-from models import db, Genre, GenreBook,Review, Book, Oblojka
-from flask_login import login_required, current_user
-from tools import OblojkaSaver, BookFilter
-from datetime import datetime
-from sqlalchemy.exc import SQLAlchemyError
-import bleach
+from flask import render_template, request, redirect, url_for, flash, Blueprint
+from flask_login import login_required
+from app import db
 from auth import check_rights
+from flask_login import login_required
+import mysql.connector
+
+bp_book = Blueprint('book', __name__, url_prefix='/book')
 
 
-bp = Blueprint('book', __name__, url_prefix='/book')
+def get_Knigi_janr(kniga_id):
+    
+    query = """
+    SELECT g.name 
+    FROM janr g 
+    JOIN Knigi_janr gb ON g.id = gb.janr_id 
+    WHERE gb.kniga_id = %s
+    """
+    cursor = db.connection().cursor(named_tuple=True)
+    cursor.execute(query, (kniga_id,))
+    genres = [row[0] for row in cursor.fetchall()]
+    
+    cursor.close()
+    return genres
 
+def get_janr():
+    query = 'SELECT * FROM janr'
+    cursor = db.connection().cursor(named_tuple=True)
+    cursor.execute(query)
+    roles = cursor.fetchall()
+    cursor.close()
+    return roles
 
-@bp.route('/new')
-@check_rights('new')
-def new():
-    genres = db.session.execute(db.select(Genre)).scalars()
-    return render_template(
-        'book/new.html',
-        genres=genres
-        )
+def get_kniga(kniga_id):
+    query = 'SELECT * FROM knigi WHERE id=%s'
+    cursor = db.connection().cursor(named_tuple=True)
+    cursor.execute(query, (kniga_id,))
+    book = cursor.fetchone()
+    cursor.close()
+    return book
 
-@bp.route('/<int:book_id>/reviews')
-@check_rights('reviews')
-def reviews(book_id):
-    book = db.session.query(Book).get_or_404(book_id)
-    genres = db.session.query(Genre).join(GenreBook).filter(GenreBook.book_id == book.id).all()
-    review = db.session.query(Review).filter_by(book_id=book_id, user_id=current_user.id).first()
-    reviews = db.session.query(Review).filter_by(book_id=book_id).order_by(Review.date_added.desc()).all()
-    return render_template('book/reviews.html', book=book, genres=genres, review = review, reviews=reviews)
-
-@bp.route('/create', methods=['POST'])
+@bp_book.route('/create', methods = ['POST', 'GET'])
+@login_required
 @check_rights('create')
-@login_required
-def create():  
-    if request.method == "POST":
+def create():
+    if request.method == 'POST':
         name = request.form['name']
-        author = request.form['author']
-        created_year = request.form['created']
+        description = request.form['description']
+        year = request.form['year']
         publish = request.form['publish']
-        pages_count = int(request.form['pagescount'])
-        short_desc = bleach.clean(request.form['short_desc'])
+        author = request.form['author']
+        pages = request.form['pages']
         genres = request.form.getlist('genres')
-        background_img = request.files['background_img']
-        try:     
-            skin_saver = OblojkaSaver(background_img)
-            skin = skin_saver.save()
-            
-            book = Book(
-                name=name,
-                author=author,
-                created_year=created_year,
-                publish=publish,
-                pages_count=pages_count,
-                short_desc=short_desc,
-                skin_id=skin.id
-            )
-            db.session.add(book)
-            db.session.flush()
-            
-            if not genres:
-                flash('Необходим выбор жанра', 'warning')
-                return render_template('new.html', genres=db.session.query(Genre).all())
-            
-            for genre_id in genres:
-                genre = db.session.query(Genre).get(genre_id)
-                if genre:
-                    genrebook = GenreBook(
-                        book_id=book.id,
-                        genre_id=genre_id
-                    )
-                db.session.add(genrebook)
-            
-            db.session.commit()
-            flash('Книга добавлена', 'success')
-            return redirect(url_for('book.show',book_id=book.id))
-        
-        except Exception as err:
-            db.session.rollback()
-            flash(f'Ошибка добавления книги в базу: {err}', 'danger')
-            return render_template('book/new.html', genres=db.session.query(Genre).all())
-    return redirect(url_for('index'))
 
-@bp.route('/show/<int:book_id>', methods=['GET', 'POST'])
+        try:
+            with db.connection().cursor(named_tuple=True) as cursor:
+                query = "INSERT INTO knigi (name, description, year, publish, author, pages) VALUES (%s, %s, %s, %s, %s, %s)"
+                cursor.execute(query, (name, description, year, publish, author, pages))
+                db.connection().commit()
+
+                if not genres:
+                    flash('Выберите жанр', 'warning')
+                    return render_template('edit.html', genres=get_janr())
+
+                query = "SELECT id FROM knigi where name=%s and description=%s"
+                cursor.execute(query, (name, description, ))
+                book_id = cursor.fetchone()
+
+                for genre_id in genres:
+                    query = "INSERT INTO Knigi_janr (kniga_id, janr_id) VALUES (%s, %s)"
+                    cursor.execute(query, (book_id[0], genre_id,))
+                    db.connection().commit()
+
+                flash(f'Книга {name} добавлена.', 'success')
+        except mysql.connector.errors.DatabaseError as e:
+            db.connection().rollback()
+            flash(f'При добавлении произошла ошибка: {e}', 'danger')
+            return render_template('book/create.html')
+
+    return render_template('book/create.html', genres=get_janr())
+
+@bp_book.route('/show/<int:kniga_id>')
 @login_required
-def show(book_id):   
-    book = db.session.query(Book).get_or_404(book_id)
-    genres = db.session.query(Genre).join(GenreBook).filter(GenreBook.book_id == book.id).all()
-    review = db.session.query(Review).filter_by(book_id=book_id, user_id=current_user.id).first()
-    reviews = db.session.query(Review).filter_by(book_id=book_id).order_by(Review.date_added.desc()).all()
-    return render_template('book/show.html', book=book, genres=genres, review = review, reviews=reviews)
+@check_rights('show')
+def show(kniga_id):
+    querry = 'SELECT * FROM knigi WHERE knigi.id=%s'
+    with db.connection().cursor(named_tuple=True) as cursor:
+        cursor.execute(querry, (kniga_id,))
+        book = cursor.fetchone()
+    return render_template('book/show.html', book = book, genres = get_Knigi_janr(kniga_id))
 
-
-@bp.route('/images/<skin_id>')
-def skin(skin_id):
-    img = db.get_or_404(Oblojka, skin_id)
-    return send_from_directory(bp.config['UPLOAD_FOLDER'], img.filename)
-
-@bp.route('/<int:book_id>', methods=['POST'])
-@login_required
-def add_review(book_id):
-    text = bleach.clean(request.form["reviewBody"])
-    rating = int(request.form["rating"])
-    try:
-        review = Review(
-            rating=rating,
-            text=text, 
-            book_id=book_id, 
-            user_id=current_user.id
-            )
-
-        book = db.get_or_404(Book, book_id)
-        book.rating_sum += rating
-        book.rating_num += 1
-        db.session.add(review)
-        db.session.commit()
-    except Exception as err:
-        flash(f'Возникла ошибка при записи данных в БД. Проверьте введенные данных. ({err})', 'danger')
-        db.session.rollback()
-    return redirect(url_for('book.show', book_id=book.id))
-
-
-@bp.route('/edit/<int:book_id>', methods=["GET", "POST"])
+@bp_book.route('/edit/<int:kniga_id>', methods=["POST", "GET"])
 @login_required
 @check_rights('edit')
-def edit(book_id):
-    book = db.session.query(Book).get_or_404(book_id)
-    genres_main = db.session.query(Genre).all()
-    
-    if request.method == "POST":
-        try:
-            book.name = request.form['name']
-            book.author = request.form['author']
-            book.created_year = request.form['created']
-            book.publish = request.form['publish']
-            book.pages_count = int(request.form['pagescount'])
-            book.short_desc = bleach.clean(request.form['short_desc'])
-            genres = request.form.getlist('genres')
-            db.session.query(GenreBook).filter_by(book_id=book.id).delete()
-
-            if not genres:
-                flash('Выберети жанр', 'warning')
-                return render_template('edit.html', genres=db.session.query(Genre).all())
-            
-            for genre_id in genres:
-                genre = db.session.query(Genre).get(genre_id)
-                if genre:
-                    genrebook = GenreBook(
-                        book_id=book.id,
-                        genre_id=genre_id
-                    )
-                db.session.add(genrebook)
-            
-            db.session.commit()
-            flash('Книга добавлена', 'success')
-            return redirect(url_for('index'))
+def edit(kniga_id):
+    if request.method == 'POST':
+        name = request.form['name']
+        description = request.form['description']
+        year = request.form['year']
+        publish = request.form['publish']
+        author = request.form['author']
+        pages = request.form['pages']
+        genres = request.form.getlist('genres')
         
-        except Exception as err:
-            db.session.rollback()
-            flash(f'Ошибка редактирования: {err}', 'danger')
-            return render_template('book/edit.html', book=book, genres=genres_main)
-    
-    return render_template('book/edit.html', book=book, genres=genres_main)
+        try:
+            with db.connection().cursor(named_tuple=True) as cursor:
+                query = '''
+                UPDATE knigi set name = %s, description = %s, year = %s, publish = %s, author = %s, pages = %s where id = %s
+                '''
+                cursor.execute(query, (name, description, year, publish, author, pages, kniga_id,))
+                db.connection().commit()
+                
+                if not genres:
+                    flash('Выберите жанр', 'warning')
+                    return render_template('book/edit.html', book = get_kniga(kniga_id), genres = get_janr())
+                
+                query = "DELETE FROM Knigi_janr WHERE kniga_id = %s"
+                cursor.execute(query, (kniga_id,))
+                db.connection().commit()
 
-@bp.route('/<int:book_id>/delete', methods=["GET", "POST"])
-@login_required
-@check_rights('delete')
-def delete(book_id):
-    book = db.session.execute(db.select(Book).filter_by(id=book_id)).scalars().first()
-    skin = db.session.execute(db.select(Oblojka).filter_by(id=book.skin_id)).scalars().first()
-    skin_filename = skin.filename
-    try:
-        db.session.query(Review).filter_by(book_id=book.id).delete()
-        db.session.delete(book)
-        db.session.delete(skin)
-        db.session.commit()
-        OblojkaSaver.drop_skin(skin_filename)
-    except SQLAlchemyError as err:
-        flash(f'Ошибка удаления: {err}', 'danger')
-        return redirect(url_for('index')) 
-    
+                for genre_id in genres:
+                    query = "INSERT INTO Knigi_janr (kniga_id, janr_id) VALUES (%s, %s)"
+                    cursor.execute(query, (kniga_id, genre_id,))
+                    db.connection().commit()
+
+                flash(f'Книга {name} успешно', 'success')
+                return render_template('book/edit.html', book=get_kniga(kniga_id), genres=get_janr())
+
+        except mysql.connector.errors.DatabaseError as err:
+            db.connection().rollback()
+            flash(f'При редактировании произошла ошибка.{err}', 'danger')
+            
+            return render_template('book/edit.html', book = get_kniga(kniga_id), genres = get_janr())
+        
+    return render_template('book/edit.html', book = get_kniga(kniga_id), genres = get_janr())
+
+@bp_book.route('/delete')  
+@login_required  
+@check_rights('delete')  
+def delete():
+    genres = request.form.getlist('genres')
+    page = int(request.args.get('page', 1))
+    count = 0
+    try:  
+        book_id = request.args.get('book_id')
+        with db.connection().cursor(named_tuple=True) as cursor:
+            querry = "DELETE FROM knigi WHERE id = %s"
+            cursor.execute(querry, (book_id,))  
+            db.connection().commit()
+
+            for genre_id in genres:
+                query = "DELETE FROM Knigi_janr WHERE kniga_id = %s AND janr_id = %s"
+                cursor.execute(query, (book_id, genre_id,))
+                db.connection().commit()
+
+        flash(f'Книга успешно удалена.', 'success')  
+
+    except mysql.connector.errors.DatabaseError as err:  
+        db.connection().rollback()  
+        flash(f'При удалении произошла ошибка.{err}', 'danger')  
+        return render_template('index.html', book=get_kniga(book_id), genres=get_janr(), page=page, count=count)
+  
     return redirect(url_for('index'))
-

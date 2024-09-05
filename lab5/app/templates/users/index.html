@@ -36,71 +36,16 @@
                   {% if current_user.can('edit',user) %}
                     <a class="btn btn-dark" href="{{url_for('edit', user_id=user.id)}}">Редактирование</a>
                   {% endif %}
-                  <style>
-                    #modal-dialog {
-  max-width: 50vw;
-  height: 50vh;
-  position: fixed;
-  width: 80%;
-  left: 50%;
-  top: 0;
-  transform: translate(-50%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.modal-content {
-  padding: 40px;
-  width: 590px;
-}
-
-.content {
-  padding: 24px;
-  box-sizing: border-box;
-  border-radius: 20px;
-  text-align: center;
-
-  p {
-    font-size: 16px;
-    padding: 10px;
-    box-sizing: border-box;
-  }
-}
-
-.modal-footer {
-  margin-top: 20px;
-  display: flex;
-  justify-content: normal;
-  align-items: center;
-  gap: 5px;
-  box-sizing: border-box;
-
-  a {
-    padding: 10px;
-    color: #fff;
-    font-size: 16px;
-    text-shadow: 1px #000000;
-
-    &.btn1 {
-      background: #000000;
-      text-decoration: none;
-    }
-
-    &.btn2 {
-      background: #ff0011;
-      text-decoration: none;
-    }
-  }
-}
-
-                  </style>
                   {% if current_user.can('delete',user) %}
                     <a class="btn btn-danger delete" data-bs-toggle="modal" data-bs-target="#deleteModal_{{user.id}}">Удалить</a>
                   {% endif %}
                   <div class="modal fade" id="deleteModal_{{user.id}}" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
                     <div class="modal-dialog">
                         <div class="modal-content">
+                            <!---div class="modal-header">
+                                <h5 class="modal-title" id="deleteModalLabel">Удаление пользователя</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div!--->
                             <div class="content">
                               <p>Вы уверены, что хотите удалить пользователя {{user.last_name}} {{user.first_name}}?</p>
                             </div>
